@@ -6,6 +6,8 @@ import SinglePost from "./assets/pages/singlepost"
 import Home2 from "./assets/pages/home2"
 import CreatePost from "./assets/pages/createPost"
 import Profile from "./assets/pages/profile"
+import Dashboard from "./assets/admin/Dashboard"
+import Users from "./assets/admin/users"
 
 
 
@@ -20,6 +22,8 @@ function App() {
         <Route path="/singlepost/:id" element={<SinglePost />} />
         <Route path="/createpost" element={<CreatePost />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<Dashboard />} />
+        <Route path="/users" element={<Users />} />
       </Routes>
     </BrowserRouter>
   )

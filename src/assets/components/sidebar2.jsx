@@ -72,11 +72,15 @@ function Sidebar() {
       />
       </Link>
       
-
+      
+      <Link to="/admin">
       <SidebarItem
         icon={<FaFire />}
-        text="Popular"
+        text="Admin"
       />
+      </Link>
+      
+      
 
       <SidebarItem
         icon={<FaNewspaper />}
