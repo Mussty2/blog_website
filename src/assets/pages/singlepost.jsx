@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
@@ -20,6 +19,11 @@ function SinglePost() {
   const [loading, setLoading] = useState(true);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [commentLoading, setCommentLoading] = useState(false);
+
+  const [likeLoading, setLikeLoading] = useState(false);
+  const [dislikeLoading, setDislikeLoading] = useState(false);
+
+  const token = localStorage.getItem("token");
 
   // =========================
   // GET SINGLE POST
@@ -62,12 +66,94 @@ function SinglePost() {
   };
 
   // =========================
-  // LOAD POST + COMMENTS
+  // LOAD POST AND COMMENTS
   // =========================
   useEffect(() => {
     getSinglePost();
     getComments();
   }, [id]);
+
+  // =========================
+  // LIKE POST
+  // =========================
+  const handleLike = async () => {
+    if (!token) {
+      alert("Please login first");
+      return;
+    }
+
+    if (likeLoading || dislikeLoading) {
+      return;
+    }
+
+    try {
+      setLikeLoading(true);
+
+      const response = await axios.put(
+        `https://blog-reddit.onrender.com/api/post/like/${id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Like response:", response.data);
+
+      await getSinglePost();
+    } catch (error) {
+      console.log("Like error:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "Unable to like post"
+      );
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  // =========================
+  // DISLIKE POST
+  // =========================
+  const handleDislike = async () => {
+    if (!token) {
+      alert("Please login first");
+      return;
+    }
+
+    if (likeLoading || dislikeLoading) {
+      return;
+    }
+
+    try {
+      setDislikeLoading(true);
+
+      const response = await axios.put(
+        `https://blog-reddit.onrender.com/api/post/dislike/${id}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Dislike response:", response.data);
+
+      await getSinglePost();
+    } catch (error) {
+      console.log("Dislike error:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "Unable to dislike post"
+      );
+    } finally {
+      setDislikeLoading(false);
+    }
+  };
 
   // =========================
   // ADD COMMENT
@@ -79,8 +165,6 @@ function SinglePost() {
       alert("Please enter a comment");
       return;
     }
-
-    const token = localStorage.getItem("token");
 
     if (!token) {
       alert("Please login first");
@@ -106,14 +190,14 @@ function SinglePost() {
 
       setCommentText("");
 
-      // Get the updated comments
-      getComments();
+      await getComments();
     } catch (error) {
       console.log("Add comment error:", error);
 
       if (error.response) {
         alert(
-          error.response.data?.message || "Unable to add comment"
+          error.response.data?.message ||
+            "Unable to add comment"
         );
       } else {
         alert("Unable to connect to the server");
@@ -148,20 +232,18 @@ function SinglePost() {
   return (
     <div className="min-h-screen bg-[#001a16] text-gray-200">
 
-      {/* TOP */}
+      {/* TOP NAVBAR */}
       <Navbar2 />
 
-      {/* LEFT */}
+      {/* LEFT SIDEBAR */}
       <Sidebar />
 
-      {/* CENTER */}
+      {/* CENTER CONTENT */}
       <main className="ml-[165px] mr-[190px] pt-[36px]">
 
-        <div className="mx-auto w-[700px] px-2 py-4">
+        <div className="mx-auto w-[700px] max-w-full px-2 py-4">
 
-          {/* =========================
-              POST
-          ========================= */}
+          {/* POST */}
           <article className="w-full">
 
             <section className="mt-4 rounded-xl border border-[#263330] bg-[#0b0f12] overflow-hidden">
@@ -183,19 +265,26 @@ function SinglePost() {
                     </p>
 
                     <p className="text-xs text-gray-500">
-                      {new Date(post.createdAt).toLocaleDateString()}
+                      {post.createdAt
+                        ? new Date(
+                            post.createdAt
+                          ).toLocaleDateString()
+                        : ""}
                     </p>
                   </div>
 
                 </div>
 
-                <button className="bg-white hover:bg-gray-200 text-black py-2 px-5 text-sm font-semibold rounded-full">
+                <button
+                  type="button"
+                  className="bg-white hover:bg-gray-200 text-black py-2 px-5 text-sm font-semibold rounded-full"
+                >
                   Join
                 </button>
 
               </div>
 
-              {/* TITLE */}
+              {/* POST TITLE AND CONTENT */}
               <div className="px-5 pt-4 pb-5">
 
                 <h1 className="text-2xl font-semibold leading-8 text-gray-100">
@@ -203,14 +292,14 @@ function SinglePost() {
                 </h1>
 
                 {post.content && (
-                  <p className="mt-4 text-gray-300 text-base leading-7">
+                  <p className="mt-4 text-gray-300 text-base leading-7 whitespace-pre-wrap">
                     {post.content}
                   </p>
                 )}
 
               </div>
 
-              {/* IMAGE */}
+              {/* POST IMAGE */}
               {post.image?.url && (
                 <div className="w-full bg-black">
 
@@ -223,31 +312,73 @@ function SinglePost() {
                 </div>
               )}
 
-              {/* ACTIONS */}
-              <div className="flex items-center gap-3 px-5 py-4">
+              {/* LIKE, DISLIKE, COMMENTS AND SHARE */}
+              <div className="flex flex-wrap items-center gap-3 px-5 py-4">
 
-                <button className="flex items-center gap-3 rounded-full bg-[#272e32] hover:bg-[#343c40] px-4 py-2 text-sm text-gray-200">
+                {/* LIKE AND DISLIKE */}
+                <div className="flex items-center rounded-full bg-[#272e32] text-gray-200">
 
-                  <span className="text-lg">
-                    <AiOutlineLike />
-                  </span>
+                  {/* LIKE BUTTON */}
+                  <button
+                    type="button"
+                    onClick={handleLike}
+                    disabled={likeLoading || dislikeLoading}
+                    title="Like post"
+                    className="flex items-center gap-2 rounded-l-full px-4 py-2 hover:bg-[#343c40] disabled:opacity-50"
+                  >
+                    <AiOutlineLike
+                      className={`text-xl ${
+                        likeLoading ? "animate-pulse" : ""
+                      }`}
+                    />
 
-                  <span className="font-semibold">
-                    {post.likes?.length || 0}
-                  </span>
+                    <span className="font-semibold">
+                      {post.likes?.length || 0}
+                    </span>
+                  </button>
 
-                  <span className="text-lg">
-                    <AiOutlineDislike />
-                  </span>
+                  <div className="h-5 w-px bg-gray-600"></div>
 
-                </button>
+                  {/* DISLIKE BUTTON */}
+                  <button
+                    type="button"
+                    onClick={handleDislike}
+                    disabled={likeLoading || dislikeLoading}
+                    title="Dislike post"
+                    className="flex items-center gap-2 rounded-r-full px-4 py-2 hover:bg-[#343c40] disabled:opacity-50"
+                  >
+                    <AiOutlineDislike
+                      className={`text-xl ${
+                        dislikeLoading ? "animate-pulse" : ""
+                      }`}
+                    />
+
+                    <span className="font-semibold">
+                      {post.dislikes?.length || 0}
+                    </span>
+                  </button>
+
+                </div>
 
                 {/* COMMENT COUNTER */}
-                <button className="rounded-full bg-[#272e32] hover:bg-[#343c40] px-5 py-2 text-sm text-gray-200">
+                <button
+                  type="button"
+                  className="rounded-full bg-[#272e32] hover:bg-[#343c40] px-5 py-2 text-sm text-gray-200"
+                >
                   💬 {comments.length}
                 </button>
 
-                <button className="flex gap-1 rounded-full bg-[#272e32] hover:bg-[#343c40] px-5 py-2 text-sm text-gray-200">
+                {/* SHARE BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(window.location.href)
+                      .then(() => alert("Post link copied!"))
+                      .catch(() => alert("Unable to copy link"));
+                  }}
+                  className="flex items-center gap-1 rounded-full bg-[#272e32] hover:bg-[#343c40] px-5 py-2 text-sm text-gray-200"
+                >
                   <IoArrowRedoOutline />
                   Share
                 </button>
@@ -258,9 +389,7 @@ function SinglePost() {
 
           </article>
 
-          {/* =========================
-              COMMENT INPUT
-          ========================= */}
+          {/* COMMENT INPUT */}
           <form
             onSubmit={handleComment}
             className="mt-3"
@@ -269,7 +398,9 @@ function SinglePost() {
             <input
               type="text"
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={(e) =>
+                setCommentText(e.target.value)
+              }
               placeholder="Join the conversation"
               className="w-full h-[40px] rounded-full border border-[#1d4039] bg-[#0b0f12] px-4 text-sm outline-none text-gray-200 placeholder:text-gray-600"
             />
@@ -303,16 +434,16 @@ function SinglePost() {
                 disabled={commentLoading}
                 className="bg-white text-black rounded-full px-5 py-2 text-xs font-semibold hover:bg-gray-200 disabled:opacity-50"
               >
-                {commentLoading ? "Posting..." : "Comment"}
+                {commentLoading
+                  ? "Posting..."
+                  : "Comment"}
               </button>
 
             </div>
 
           </form>
 
-          {/* =========================
-              COMMENTS
-          ========================= */}
+          {/* COMMENTS */}
           <div className="mt-6">
 
             {commentsLoading ? (
@@ -343,7 +474,9 @@ function SinglePost() {
                       <div>
                         <p className="text-xs font-semibold text-gray-300">
                           {comment.user
-                            ? `${comment.user.firstname} ${comment.user.lastname}`
+                            ? `${comment.user.firstname || ""} ${
+                                comment.user.lastname || ""
+                              }`.trim()
                             : "User"}
                         </p>
 
@@ -358,7 +491,7 @@ function SinglePost() {
 
                     </div>
 
-                    <p className="mt-3 text-sm text-gray-300 leading-6">
+                    <p className="mt-3 text-sm text-gray-300 leading-6 whitespace-pre-wrap">
                       {comment.content}
                     </p>
 
@@ -374,7 +507,7 @@ function SinglePost() {
 
       </main>
 
-      {/* RIGHT */}
+      {/* RIGHT COMMUNITY */}
       <Community />
 
     </div>
@@ -382,4 +515,3 @@ function SinglePost() {
 }
 
 export default SinglePost;
-
